@@ -1,11 +1,12 @@
 <?php declare(strict_types=1);
 
-namespace ElasticScoutDriverPlus\Decorators;
+namespace Elastic\ScoutDriverPlus\Decorators;
 
-use ElasticAdapter\Search\Hit as BaseHit;
-use ElasticScoutDriverPlus\Factories\LazyModelFactory;
+use Elastic\Adapter\Search\Hit as BaseHit;
+use Elastic\ScoutDriverPlus\Factories\LazyModelFactory;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection as BaseCollection;
 use Illuminate\Support\Traits\ForwardsCalls;
 
 /**
@@ -15,26 +16,29 @@ final class Hit implements Arrayable
 {
     use ForwardsCalls;
 
-    /**
-     * @var BaseHit
-     */
-    private $hit;
-    /**
-     * @var LazyModelFactory
-     */
-    private $lazyModelFactory;
+    private BaseHit $baseHit;
+    private LazyModelFactory $lazyModelFactory;
 
-    public function __construct(BaseHit $hit, LazyModelFactory $lazyModelFactory)
+    public function __construct(BaseHit $baseHit, LazyModelFactory $lazyModelFactory)
     {
-        $this->hit = $hit;
+        $this->baseHit = $baseHit;
         $this->lazyModelFactory = $lazyModelFactory;
     }
 
     public function model(): ?Model
     {
-        return $this->lazyModelFactory->makeByIndexNameAndDocumentId(
+        return $this->lazyModelFactory->makeFromIndexNameAndDocumentId(
             $this->indexName(),
             $this->document()->id()
+        );
+    }
+
+    public function innerHits(): BaseCollection
+    {
+        return $this->baseHit->innerHits()->map(
+            fn (BaseCollection $baseInnerHits) => $baseInnerHits->map(
+                fn (BaseHit $baseInnerHit) => new self($baseInnerHit, $this->lazyModelFactory)
+            )
         );
     }
 
@@ -43,11 +47,11 @@ final class Hit implements Arrayable
      */
     public function __call(string $method, array $parameters)
     {
-        return $this->forwardCallTo($this->hit, $method, $parameters);
+        return $this->forwardCallTo($this->baseHit, $method, $parameters);
     }
 
     /**
-     * @{@inheritDoc}
+     * {@inheritDoc}
      */
     public function toArray()
     {

@@ -1,23 +1,22 @@
 <?php declare(strict_types=1);
 
-namespace ElasticScoutDriverPlus\Tests\Integration\Decorators;
+namespace Elastic\ScoutDriverPlus\Tests\Integration\Decorators;
 
-use ElasticAdapter\Search\Hit as BaseHit;
-use ElasticScoutDriverPlus\Decorators\Hit;
-use ElasticScoutDriverPlus\Factories\LazyModelFactory;
-use ElasticScoutDriverPlus\Tests\App\Book;
-use ElasticScoutDriverPlus\Tests\Integration\TestCase;
+use Elastic\Adapter\Search\Hit as BaseHit;
+use Elastic\ScoutDriverPlus\Decorators\Hit;
+use Elastic\ScoutDriverPlus\Factories\LazyModelFactory;
+use Elastic\ScoutDriverPlus\Tests\App\Book;
+use Elastic\ScoutDriverPlus\Tests\Integration\TestCase;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * @covers \ElasticScoutDriverPlus\Decorators\Hit
+ * @covers \Elastic\ScoutDriverPlus\Decorators\Hit
+ *
+ * @uses \Elastic\ScoutDriverPlus\Searchable
  */
 final class HitTest extends TestCase
 {
-    /**
-     * @var Hit
-     */
-    private $hit;
+    private Hit $hit;
 
     protected function setUp(): void
     {
@@ -39,7 +38,7 @@ final class HitTest extends TestCase
         $lazyModelFactory = $this->createMock(LazyModelFactory::class);
 
         $lazyModelFactory->expects($this->any())
-            ->method('makeByIndexNameAndDocumentId')
+            ->method('makeFromIndexNameAndDocumentId')
             ->with('test', '1')
             ->willReturn($model);
 

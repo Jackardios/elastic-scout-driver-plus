@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace ElasticScoutDriverPlus\Tests\App;
+namespace Elastic\ScoutDriverPlus\Tests\App;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,7 +12,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $title
  * @property string $description
  * @property float  $price
- * @property string $formatted_price
  * @property array  $tags
  * @property Carbon $published
  * @property Carbon $deleted_at
@@ -46,15 +45,15 @@ class Book extends Model
     public function toSearchableArray()
     {
         $searchable = parent::toSearchableArray();
+        $searchable['suggest'] = $this->title;
         $searchable['author'] = $this->author->only(['name', 'phone_number']);
-
         return $searchable;
     }
 
     /**
      * @return string
      */
-    public function shardRouting()
+    public function searchableRouting()
     {
         return $this->author->name;
     }
@@ -65,10 +64,5 @@ class Book extends Model
     public function searchableWith()
     {
         return ['author'];
-    }
-
-    public function getFormattedPriceAttribute(): string
-    {
-        return number_format($this->price, 2, ',', ' ');
     }
 }

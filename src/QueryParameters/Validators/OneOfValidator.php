@@ -1,16 +1,13 @@
 <?php declare(strict_types=1);
 
-namespace ElasticScoutDriverPlus\QueryParameters\Validators;
+namespace Elastic\ScoutDriverPlus\QueryParameters\Validators;
 
-use ElasticScoutDriverPlus\Exceptions\QueryBuilderException;
-use ElasticScoutDriverPlus\QueryParameters\ParameterCollection;
+use Elastic\ScoutDriverPlus\Exceptions\QueryBuilderValidationException;
+use Elastic\ScoutDriverPlus\QueryParameters\ParameterCollection;
 
 final class OneOfValidator implements ValidatorInterface
 {
-    /**
-     * @var array
-     */
-    private $required;
+    private array $required;
 
     public function __construct(array $required)
     {
@@ -22,7 +19,7 @@ final class OneOfValidator implements ValidatorInterface
         $isInvalid = $parameters->only($this->required)->excludeEmpty()->count() === 0;
 
         if ($isInvalid) {
-            throw new QueryBuilderException(
+            throw new QueryBuilderValidationException(
                 'At least one of the following parameters has to be specified: ' .
                 implode(', ', $this->required)
             );

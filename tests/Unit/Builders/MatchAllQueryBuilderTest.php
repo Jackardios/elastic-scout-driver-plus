@@ -1,20 +1,17 @@
 <?php declare(strict_types=1);
 
-namespace ElasticScoutDriverPlus\Tests\Unit\Builders;
+namespace Elastic\ScoutDriverPlus\Tests\Unit\Builders;
 
-use ElasticScoutDriverPlus\Builders\MatchAllQueryBuilder;
+use Elastic\ScoutDriverPlus\Builders\MatchAllQueryBuilder;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 
 /**
- * @covers \ElasticScoutDriverPlus\Builders\MatchAllQueryBuilder
+ * @covers \Elastic\ScoutDriverPlus\Builders\MatchAllQueryBuilder
  */
 final class MatchAllQueryBuilderTest extends TestCase
 {
-    /**
-     * @var MatchAllQueryBuilder
-     */
-    private $builder;
+    private MatchAllQueryBuilder $builder;
 
     protected function setUp(): void
     {

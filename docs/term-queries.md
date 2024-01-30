@@ -12,7 +12,7 @@
 
 ## Exists
 
-You can use `ElasticScoutDriverPlus\Support\Query::exists()` to build a query that matches documents, which
+You can use `Elastic\ScoutDriverPlus\Support\Query::exists()` to build a query that matches documents, which
 [contain an indexed value for a `field`](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-exists-query.html#query-dsl-exists-query):
 
 ```php
@@ -23,7 +23,7 @@ $searchResult = Book::searchQuery($query)->execute();
 
 ## Fuzzy
 
-You can use `ElasticScoutDriverPlus\Support\Query::fuzzy()` to build a query that matches documents, which
+You can use `Elastic\ScoutDriverPlus\Support\Query::fuzzy()` to build a query that matches documents, which
 [contain terms similar to the search term](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-fuzzy-query.html#query-dsl-fuzzy-query):
 
 ```php
@@ -135,7 +135,7 @@ $searchResult = Book::searchQuery($query)->execute();
 
 ## Ids
 
-You can use `ElasticScoutDriverPlus\Support\Query::ids()` to build a query that matches documents
+You can use `Elastic\ScoutDriverPlus\Support\Query::ids()` to build a query that matches documents
 [based on their IDs](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-ids-query.html#query-dsl-ids-query):
 
 ```php
@@ -146,7 +146,7 @@ $searchResult = Book::searchQuery($query)->execute();
 
 ## Prefix
 
-You can use `ElasticScoutDriverPlus\Support\Query::prefix()` to build a query that matches documents, which
+You can use `Elastic\ScoutDriverPlus\Support\Query::prefix()` to build a query that matches documents, which
 [contain a specific prefix in a provided `field`](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-prefix-query.html#query-dsl-prefix-query):
 
 ```php
@@ -159,9 +159,23 @@ $searchResult = Book::searchQuery($query)->execute();
 
 Available methods:
 
+* [caseInsensitive](#prefix-caseinsensitive)
 * [field](#prefix-field)
 * [rewrite](#prefix-rewrite)
 * [value](#prefix-value)
+
+### <a name="prefix-caseinsensitive"></a> caseInsensitive
+
+`caseInsensitive` is used to [allow ASCII case insensitive matching](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-prefix-query.html#prefix-query-field-params):
+
+```php
+$query = Query::prefix()
+    ->field('title')
+    ->value('boo')
+    ->caseInsensitive(true);
+
+$searchResult = Book::searchQuery($query)->execute();
+```
 
 ### <a name="prefix-field"></a> field
 
@@ -202,7 +216,7 @@ $searchResult = Book::searchQuery($query)->execute();
 
 ## Range
 
-You can use `ElasticScoutDriverPlus\Support\Query::range()` to build a query that matches documents, which
+You can use `Elastic\ScoutDriverPlus\Support\Query::range()` to build a query that matches documents, which
 [contain terms within a provided range](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-range-query.html#query-dsl-range-query):
 
 ```php
@@ -340,7 +354,7 @@ $searchResult = Book::searchQuery($query)->execute();
 
 ## Regexp
 
-You can use `ElasticScoutDriverPlus\Support\Query::regexp()` to build a query that matches documents, which
+You can use `Elastic\ScoutDriverPlus\Support\Query::regexp()` to build a query that matches documents, which
 [contain terms corresponding to regular expression](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-regexp-query.html#query-dsl-regexp-query):
 
 ```php
@@ -353,11 +367,25 @@ $searchResult = Book::searchQuery($query)->execute();
 
 Available methods:
 
+* [caseInsensitive](#regexp-caseinsensitive)
 * [field](#regexp-field)
 * [flags](#regexp-flags)
 * [maxDeterminizedStates](#regexp-max-determinized-states)
 * [rewrite](#regexp-rewrite)
 * [value](#regexp-value)
+
+### <a name="regexp-caseinsensitive"></a> caseInsensitive
+
+`caseInsensitive` is used to [allow case insensitive matching](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-regexp-query.html#regexp-query-field-params):
+
+```php
+$query = Query::regexp()
+    ->field('title')
+    ->value('b.*k')
+    ->caseInsensitive(true);
+
+$searchResult = Book::searchQuery($query)->execute();
+```
 
 ### <a name="regexp-field"></a> field
 
@@ -424,13 +452,13 @@ $searchResult = Book::searchQuery($query)->execute();
 
 ## Term
 
-You can use `ElasticScoutDriverPlus\Support\Query::term()` to build a query that matches documents, which
+You can use `Elastic\ScoutDriverPlus\Support\Query::term()` to build a query that matches documents, which
 [contain an exact term in a provided field](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-term-query.html#query-dsl-term-query):
 
 ```php
 $query = Query::term()
     ->field('price')
-    ->value('300');
+    ->value(300);
 
 $searchResult = Book::searchQuery($query)->execute();
 ```
@@ -438,6 +466,7 @@ $searchResult = Book::searchQuery($query)->execute();
 Available methods:
 
 * [boost](#term-boost)
+* [caseInsensitive](#term-caseinsensitive)
 * [field](#term-field)
 * [value](#term-value)
 
@@ -448,8 +477,21 @@ Available methods:
 ```php
 $query = Query::term()
     ->field('price')
-    ->value('300')
+    ->value(300)
     ->boost(2);
+
+$searchResult = Book::searchQuery($query)->execute();
+```
+
+### <a name="term-caseinsensitive"></a> caseInsensitive
+
+`caseInsensitive` is used to [allow ASCII case insensitive matching](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-term-query.html#term-field-params):
+
+```php
+$query = Query::term()
+    ->field('price')
+    ->value(300)
+    ->caseInsensitive(true);
 
 $searchResult = Book::searchQuery($query)->execute();
 ```
@@ -461,7 +503,7 @@ Use `field` to specify the [field you wish to search](https://www.elastic.co/gui
 ```php
 $query = Query::term()
     ->field('price')
-    ->value('300');
+    ->value(300);
 
 $searchResult = Book::searchQuery($query)->execute();
 ```
@@ -473,14 +515,14 @@ With `value` you can define a [term you wish to find in the provided `field`](ht
 ```php
 $query = Query::term()
     ->field('price')
-    ->value('300');
+    ->value(300);
 
 $searchResult = Book::searchQuery($query)->execute();
 ```
 
 ## Terms
 
-You can use `ElasticScoutDriverPlus\Support\Query::terms()` to build a query that matches documents, which
+You can use `Elastic\ScoutDriverPlus\Support\Query::terms()` to build a query that matches documents, which
 [contain one or more exact terms in a provided field](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-terms-query.html#query-dsl-terms-query):
 
 ```php
@@ -536,11 +578,11 @@ $searchResult = Book::searchQuery($query)->execute();
 
 ## Wildcard
 
-You can use `ElasticScoutDriverPlus\Support\Query::wildcard()` to build a query that matches documents, which
+You can use `Elastic\ScoutDriverPlus\Support\Query::wildcard()` to build a query that matches documents, which
 [contain terms corresponding to wildcard pattern](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-wildcard-query.html#query-dsl-wildcard-query):
 
 ```php
-$query = ElasticScoutDriverPlus\Support\Query::wildcard()
+$query = Elastic\ScoutDriverPlus\Support\Query::wildcard()
     ->field('title')
     ->value('bo*k');
 
@@ -550,6 +592,7 @@ $searchResult = Book::searchQuery($query)->execute();
 Available methods:
 
 * [boost](#wildcard-boost)
+* [caseInsensitive](#wildcard-caseinsensitive)
 * [field](#wildcard-field)
 * [rewrite](#wildcard-rewrite)
 * [value](#wildcard-value)
@@ -559,10 +602,23 @@ Available methods:
 `boost` method allows you to [decrease or increase the relevance scores of a query](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-wildcard-query.html#wildcard-query-field-params):
 
 ```php
-$query = ElasticScoutDriverPlus\Support\Query::wildcard()
+$query = Elastic\ScoutDriverPlus\Support\Query::wildcard()
     ->field('title')
     ->value('bo*k')
     ->boost(2);
+
+$searchResult = Book::searchQuery($query)->execute();
+```
+
+### <a name="wildcard-caseinsensitive"></a> caseInsensitive
+
+`caseInsensitive` is used to [allow case insensitive matching](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-wildcard-query.html#wildcard-query-field-params):
+
+```php
+$query = Elastic\ScoutDriverPlus\Support\Query::wildcard()
+    ->field('title')
+    ->value('bo*k')
+    ->caseInsensitive(true);
 
 $searchResult = Book::searchQuery($query)->execute();
 ```
@@ -572,7 +628,7 @@ $searchResult = Book::searchQuery($query)->execute();
 Use `field` to specify the [field you wish to search](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-wildcard-query.html#wildcard-top-level-params):
 
 ```php
-$query = ElasticScoutDriverPlus\Support\Query::wildcard()
+$query = Elastic\ScoutDriverPlus\Support\Query::wildcard()
     ->field('title')
     ->value('bo*k');
 
@@ -584,7 +640,7 @@ $searchResult = Book::searchQuery($query)->execute();
 `rewrite` is used to [rewrite the query](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-wildcard-query.html#wildcard-query-field-params):
 
 ```php
-$query = ElasticScoutDriverPlus\Support\Query::wildcard()
+$query = Elastic\ScoutDriverPlus\Support\Query::wildcard()
     ->field('title')
     ->value('bo*k')
     ->rewrite('constant_score');
@@ -597,7 +653,7 @@ $searchResult = Book::searchQuery($query)->execute();
 With `value` you can define a [wildcard pattern for terms you wish to find in the provided `field`](https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-wildcard-query.html#wildcard-query-field-params):
 
 ```php
-$query = ElasticScoutDriverPlus\Support\Query::wildcard()
+$query = Elastic\ScoutDriverPlus\Support\Query::wildcard()
     ->field('title')
     ->value('bo*k');
 

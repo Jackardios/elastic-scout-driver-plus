@@ -1,36 +1,33 @@
 <?php declare(strict_types=1);
 
-namespace ElasticScoutDriverPlus\Tests\Integration\Builders;
+namespace Elastic\ScoutDriverPlus\Tests\Integration\Builders;
 
-use ElasticScoutDriverPlus\Builders\BoolQueryBuilder;
-use ElasticScoutDriverPlus\Exceptions\QueryBuilderException;
-use ElasticScoutDriverPlus\Support\Query;
-use ElasticScoutDriverPlus\Tests\Integration\TestCase;
+use Elastic\ScoutDriverPlus\Builders\BoolQueryBuilder;
+use Elastic\ScoutDriverPlus\Exceptions\QueryBuilderValidationException;
+use Elastic\ScoutDriverPlus\Support\Query;
+use Elastic\ScoutDriverPlus\Tests\Integration\TestCase;
 use stdClass;
 
 /**
- * @covers \ElasticScoutDriverPlus\Builders\AbstractParameterizedQueryBuilder
- * @covers \ElasticScoutDriverPlus\Builders\BoolQueryBuilder
+ * @covers \Elastic\ScoutDriverPlus\Builders\AbstractParameterizedQueryBuilder
+ * @covers \Elastic\ScoutDriverPlus\Builders\BoolQueryBuilder
  *
- * @uses   \ElasticScoutDriverPlus\Builders\MatchAllQueryBuilder
- * @uses   \ElasticScoutDriverPlus\Builders\TermQueryBuilder
- * @uses   \ElasticScoutDriverPlus\Factories\ParameterFactory
- * @uses   \ElasticScoutDriverPlus\QueryParameters\ParameterCollection
- * @uses   \ElasticScoutDriverPlus\QueryParameters\Shared\FieldParameter
- * @uses   \ElasticScoutDriverPlus\QueryParameters\Shared\ValueParameter
- * @uses   \ElasticScoutDriverPlus\QueryParameters\Transformers\FlatArrayTransformer
- * @uses   \ElasticScoutDriverPlus\QueryParameters\Transformers\GroupedArrayTransformer
- * @uses   \ElasticScoutDriverPlus\QueryParameters\Validators\AllOfValidator
- * @uses   \ElasticScoutDriverPlus\QueryParameters\Validators\OneOfValidator
- * @uses   \ElasticScoutDriverPlus\Support\Arr
- * @uses   \ElasticScoutDriverPlus\Support\Query
+ * @uses   \Elastic\ScoutDriverPlus\Builders\MatchAllQueryBuilder
+ * @uses   \Elastic\ScoutDriverPlus\Builders\TermQueryBuilder
+ * @uses   \Elastic\ScoutDriverPlus\Factories\ParameterFactory
+ * @uses   \Elastic\ScoutDriverPlus\QueryParameters\ParameterCollection
+ * @uses   \Elastic\ScoutDriverPlus\QueryParameters\Shared\FieldParameter
+ * @uses   \Elastic\ScoutDriverPlus\QueryParameters\Shared\ValueParameter
+ * @uses   \Elastic\ScoutDriverPlus\QueryParameters\Transformers\FlatArrayTransformer
+ * @uses   \Elastic\ScoutDriverPlus\QueryParameters\Transformers\GroupedArrayTransformer
+ * @uses   \Elastic\ScoutDriverPlus\QueryParameters\Validators\AllOfValidator
+ * @uses   \Elastic\ScoutDriverPlus\QueryParameters\Validators\OneOfValidator
+ * @uses   \Elastic\ScoutDriverPlus\Support\Arr
+ * @uses   \Elastic\ScoutDriverPlus\Support\Query
  */
 final class BoolQueryBuilderTest extends TestCase
 {
-    /**
-     * @var BoolQueryBuilder
-     */
-    private $builder;
+    private BoolQueryBuilder $builder;
 
     protected function setUp(): void
     {
@@ -41,7 +38,7 @@ final class BoolQueryBuilderTest extends TestCase
 
     public function test_exception_is_thrown_when_building_query_with_empty_clauses(): void
     {
-        $this->expectException(QueryBuilderException::class);
+        $this->expectException(QueryBuilderValidationException::class);
 
         $this->builder
             ->withTrashed()
@@ -68,7 +65,7 @@ final class BoolQueryBuilderTest extends TestCase
 
     public function test_query_with_only_trashed_can_be_built(): void
     {
-        $this->app['config']->set('scout.soft_delete', true);
+        $this->config->set('scout.soft_delete', true);
 
         $expected = [
             'bool' => [
@@ -305,7 +302,7 @@ final class BoolQueryBuilderTest extends TestCase
 
     public function test_query_with_raw_filter_and_soft_deletes_can_be_built(): void
     {
-        $this->app['config']->set('scout.soft_delete', true);
+        $this->config->set('scout.soft_delete', true);
 
         $expected = [
             'bool' => [

@@ -1,25 +1,21 @@
 <?php declare(strict_types=1);
 
-namespace ElasticScoutDriverPlus\Tests\Integration\Factories;
+namespace Elastic\ScoutDriverPlus\Tests\Integration\Factories;
 
-use ElasticScoutDriverPlus\Factories\DocumentFactory;
-use ElasticScoutDriverPlus\Tests\App\Book;
-use ElasticScoutDriverPlus\Tests\Integration\TestCase;
-use Illuminate\Support\Facades\DB;
+use Elastic\ScoutDriverPlus\Factories\DocumentFactory;
+use Elastic\ScoutDriverPlus\Tests\App\Book;
+use Elastic\ScoutDriverPlus\Tests\Integration\TestCase;
 
 /**
- * @covers \ElasticScoutDriverPlus\Factories\DocumentFactory
+ * @covers \Elastic\ScoutDriverPlus\Factories\DocumentFactory
  *
- * @uses   \ElasticScoutDriverPlus\Engine
- * @uses   \ElasticScoutDriverPlus\Factories\RoutingFactory
- * @uses   \ElasticScoutDriverPlus\Searchable
+ * @uses   \Elastic\ScoutDriverPlus\Engine
+ * @uses   \Elastic\ScoutDriverPlus\Factories\RoutingFactory
+ * @uses   \Elastic\ScoutDriverPlus\Searchable
  */
 final class DocumentFactoryTest extends TestCase
 {
-    /**
-     * @var DocumentFactory
-     */
-    private $documentFactory;
+    private DocumentFactory $documentFactory;
 
     protected function setUp(): void
     {
@@ -30,15 +26,13 @@ final class DocumentFactoryTest extends TestCase
 
     public function test_relations_can_be_preloaded(): void
     {
-        $models = factory(Book::class, rand(2, 5))
+        $models = factory(Book::class, 5)
             ->state('belongs_to_author')
             ->create()
             ->fresh();
 
-        DB::enableQueryLog();
-        $this->documentFactory->makeFromModels($models);
-        $queryLog = DB::getQueryLog();
-
-        $this->assertCount(1, $queryLog);
+        $this->assertDatabaseQueriesCount(1, function () use ($models) {
+            $this->documentFactory->makeFromModels($models);
+        });
     }
 }

@@ -1,45 +1,47 @@
 <?php declare(strict_types=1);
 
-namespace ElasticScoutDriverPlus\Tests\Integration\Queries;
+namespace Elastic\ScoutDriverPlus\Tests\Integration\Queries;
 
 use Carbon\Carbon;
-use ElasticScoutDriverPlus\Builders\BoolQueryBuilder;
-use ElasticScoutDriverPlus\Builders\RangeQueryBuilder;
-use ElasticScoutDriverPlus\Support\Query;
-use ElasticScoutDriverPlus\Tests\App\Author;
-use ElasticScoutDriverPlus\Tests\App\Book;
-use ElasticScoutDriverPlus\Tests\Integration\TestCase;
+use Elastic\ScoutDriverPlus\Builders\BoolQueryBuilder;
+use Elastic\ScoutDriverPlus\Builders\RangeQueryBuilder;
+use Elastic\ScoutDriverPlus\Support\Query;
+use Elastic\ScoutDriverPlus\Tests\App\Author;
+use Elastic\ScoutDriverPlus\Tests\App\Book;
+use Elastic\ScoutDriverPlus\Tests\Integration\TestCase;
+
 use const SORT_NUMERIC;
 
 /**
- * @covers \ElasticScoutDriverPlus\Builders\AbstractParameterizedQueryBuilder
- * @covers \ElasticScoutDriverPlus\Builders\BoolQueryBuilder
- * @covers \ElasticScoutDriverPlus\Engine
- * @covers \ElasticScoutDriverPlus\Factories\LazyModelFactory
- * @covers \ElasticScoutDriverPlus\Support\Query
+ * @covers \Elastic\ScoutDriverPlus\Builders\AbstractParameterizedQueryBuilder
+ * @covers \Elastic\ScoutDriverPlus\Builders\BoolQueryBuilder
+ * @covers \Elastic\ScoutDriverPlus\Engine
+ * @covers \Elastic\ScoutDriverPlus\Factories\LazyModelFactory
+ * @covers \Elastic\ScoutDriverPlus\Factories\ModelFactory
+ * @covers \Elastic\ScoutDriverPlus\Support\Query
  *
- * @uses   \ElasticScoutDriverPlus\Builders\MatchAllQueryBuilder
- * @uses   \ElasticScoutDriverPlus\Builders\MatchQueryBuilder
- * @uses   \ElasticScoutDriverPlus\Builders\RangeQueryBuilder
- * @uses   \ElasticScoutDriverPlus\Builders\SearchRequestBuilder
- * @uses   \ElasticScoutDriverPlus\Builders\TermQueryBuilder
- * @uses   \ElasticScoutDriverPlus\Decorators\Hit
- * @uses   \ElasticScoutDriverPlus\Decorators\SearchResult
- * @uses   \ElasticScoutDriverPlus\Factories\DocumentFactory
- * @uses   \ElasticScoutDriverPlus\Factories\ParameterFactory
- * @uses   \ElasticScoutDriverPlus\Factories\RoutingFactory
- * @uses   \ElasticScoutDriverPlus\QueryParameters\ParameterCollection
- * @uses   \ElasticScoutDriverPlus\QueryParameters\Shared\FieldParameter
- * @uses   \ElasticScoutDriverPlus\QueryParameters\Shared\QueryStringParameter
- * @uses   \ElasticScoutDriverPlus\QueryParameters\Shared\ValueParameter
- * @uses   \ElasticScoutDriverPlus\QueryParameters\Transformers\FlatArrayTransformer
- * @uses   \ElasticScoutDriverPlus\QueryParameters\Transformers\GroupedArrayTransformer
- * @uses   \ElasticScoutDriverPlus\QueryParameters\Validators\AllOfValidator
- * @uses   \ElasticScoutDriverPlus\QueryParameters\Validators\CompoundValidator
- * @uses   \ElasticScoutDriverPlus\QueryParameters\Validators\OneOfValidator
- * @uses   \ElasticScoutDriverPlus\Searchable
- * @uses   \ElasticScoutDriverPlus\Support\Arr
- * @uses   \ElasticScoutDriverPlus\Support\ModelScope
+ * @uses   \Elastic\ScoutDriverPlus\Builders\DatabaseQueryBuilder
+ * @uses   \Elastic\ScoutDriverPlus\Builders\MatchAllQueryBuilder
+ * @uses   \Elastic\ScoutDriverPlus\Builders\MatchQueryBuilder
+ * @uses   \Elastic\ScoutDriverPlus\Builders\RangeQueryBuilder
+ * @uses   \Elastic\ScoutDriverPlus\Builders\SearchParametersBuilder
+ * @uses   \Elastic\ScoutDriverPlus\Builders\TermQueryBuilder
+ * @uses   \Elastic\ScoutDriverPlus\Decorators\Hit
+ * @uses   \Elastic\ScoutDriverPlus\Decorators\SearchResult
+ * @uses   \Elastic\ScoutDriverPlus\Factories\DocumentFactory
+ * @uses   \Elastic\ScoutDriverPlus\Factories\ParameterFactory
+ * @uses   \Elastic\ScoutDriverPlus\Factories\RoutingFactory
+ * @uses   \Elastic\ScoutDriverPlus\QueryParameters\ParameterCollection
+ * @uses   \Elastic\ScoutDriverPlus\QueryParameters\Shared\FieldParameter
+ * @uses   \Elastic\ScoutDriverPlus\QueryParameters\Shared\QueryStringParameter
+ * @uses   \Elastic\ScoutDriverPlus\QueryParameters\Shared\ValueParameter
+ * @uses   \Elastic\ScoutDriverPlus\QueryParameters\Transformers\FlatArrayTransformer
+ * @uses   \Elastic\ScoutDriverPlus\QueryParameters\Transformers\GroupedArrayTransformer
+ * @uses   \Elastic\ScoutDriverPlus\QueryParameters\Validators\AllOfValidator
+ * @uses   \Elastic\ScoutDriverPlus\QueryParameters\Validators\CompoundValidator
+ * @uses   \Elastic\ScoutDriverPlus\QueryParameters\Validators\OneOfValidator
+ * @uses   \Elastic\ScoutDriverPlus\Searchable
+ * @uses   \Elastic\ScoutDriverPlus\Support\Arr
  */
 final class BoolQueryTest extends TestCase
 {
@@ -88,15 +90,15 @@ final class BoolQueryTest extends TestCase
 
     public function test_models_can_be_found_using_should(): void
     {
-        $source = collect(['2018-04-23', '2003-01-14', '2020-03-07'])->map(static function (string $published) {
-            return factory(Book::class)
+        $source = collect(['2018-04-23', '2003-01-14', '2020-03-07'])->map(
+            static fn (string $published) => factory(Book::class)
                 ->state('belongs_to_author')
-                ->create(['published' => Carbon::createFromFormat('Y-m-d', $published)]);
-        });
+                ->create(['published' => Carbon::createFromFormat('Y-m-d', $published)])
+        );
 
-        $target = $source->filter(static function (Book $model) {
-            return $model->published->year > 2003;
-        })->sortBy('id', SORT_NUMERIC);
+        $target = $source->filter(
+            static fn (Book $model) => $model->published->year > 2003
+        )->sortBy('id', SORT_NUMERIC);
 
         $query = Query::bool()
             ->should(
@@ -141,7 +143,7 @@ final class BoolQueryTest extends TestCase
 
     public function test_not_trashed_models_can_be_found(): void
     {
-        $this->app['config']->set('scout.soft_delete', true);
+        $this->config->set('scout.soft_delete', true);
 
         $source = factory(Book::class, rand(2, 10))
             ->state('belongs_to_author')
@@ -164,7 +166,7 @@ final class BoolQueryTest extends TestCase
 
     public function test_trashed_models_can_be_found(): void
     {
-        $this->app['config']->set('scout.soft_delete', true);
+        $this->config->set('scout.soft_delete', true);
 
         $target = factory(Book::class, rand(2, 10))
             ->state('belongs_to_author')
@@ -187,7 +189,7 @@ final class BoolQueryTest extends TestCase
 
     public function test_only_trashed_models_can_be_found(): void
     {
-        $this->app['config']->set('scout.soft_delete', true);
+        $this->config->set('scout.soft_delete', true);
 
         $source = factory(Book::class, rand(2, 10))
             ->state('belongs_to_author')
@@ -207,7 +209,7 @@ final class BoolQueryTest extends TestCase
 
     public function test_only_trashed_models_can_be_found_in_multiple_indices(): void
     {
-        $this->app['config']->set('scout.soft_delete', true);
+        $this->config->set('scout.soft_delete', true);
 
         $target = factory(Book::class)
             ->state('belongs_to_author')

@@ -1,34 +1,34 @@
 <?php declare(strict_types=1);
 
-namespace ElasticScoutDriverPlus\Tests\Integration;
+namespace Elastic\ScoutDriverPlus\Tests\Integration;
 
-use ElasticAdapter\Documents\Document;
-use ElasticAdapter\Search\SearchResponse;
-use ElasticScoutDriverPlus\Decorators\Hit;
-use ElasticScoutDriverPlus\Decorators\SearchResult;
-use ElasticScoutDriverPlus\Factories\LazyModelFactory;
-use ElasticScoutDriverPlus\Paginator;
-use ElasticScoutDriverPlus\Tests\App\Book;
-use ElasticScoutDriverPlus\Tests\App\Model;
+use Elastic\Adapter\Documents\Document;
+use Elastic\Adapter\Search\SearchResult as BaseSearchResult;
+use Elastic\ScoutDriverPlus\Decorators\Hit;
+use Elastic\ScoutDriverPlus\Decorators\SearchResult;
+use Elastic\ScoutDriverPlus\Factories\ModelFactory;
+use Elastic\ScoutDriverPlus\Paginator;
+use Elastic\ScoutDriverPlus\Tests\App\Book;
+use Elastic\ScoutDriverPlus\Tests\App\Model;
+use Illuminate\Database\Eloquent\Collection;
 
 /**
- * @covers \ElasticScoutDriverPlus\Paginator
+ * @covers \Elastic\ScoutDriverPlus\Paginator
  *
- * @uses   \ElasticScoutDriverPlus\Decorators\Hit
- * @uses   \ElasticScoutDriverPlus\Decorators\SearchResult
+ * @uses   \Elastic\ScoutDriverPlus\Decorators\Hit
+ * @uses   \Elastic\ScoutDriverPlus\Decorators\SearchResult
+ * @uses   \Elastic\ScoutDriverPlus\Factories\LazyModelFactory
+ * @uses   \Elastic\ScoutDriverPlus\Searchable
  */
 final class PaginatorTest extends TestCase
 {
-    /**
-     * @var Paginator
-     */
-    private $paginator;
+    private Paginator $paginator;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $searchResponse = new SearchResponse([
+        $baseSearchResult = new BaseSearchResult([
             'hits' => [
                 'hits' => [
                     [
@@ -50,14 +50,14 @@ final class PaginatorTest extends TestCase
             'title' => 'foo',
         ]);
 
-        $lazyModelFactory = $this->createMock(LazyModelFactory::class);
+        $modelFactory = $this->createMock(ModelFactory::class);
 
-        $lazyModelFactory->expects($this->any())
-            ->method('makeByIndexNameAndDocumentId')
-            ->with('test', '1')
-            ->willReturn($model);
+        $modelFactory->expects($this->any())
+            ->method('makeFromIndexNameAndDocumentIds')
+            ->with('test', [(string)$model->getScoutKey()])
+            ->willReturn(new Collection([$model]));
 
-        $searchResult = new SearchResult($searchResponse, $lazyModelFactory);
+        $searchResult = new SearchResult($baseSearchResult, $modelFactory);
         $this->paginator = new Paginator($searchResult, 1);
     }
 

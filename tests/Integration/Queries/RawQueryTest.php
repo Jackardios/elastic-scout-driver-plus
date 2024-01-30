@@ -1,16 +1,16 @@
 <?php declare(strict_types=1);
 
-namespace ElasticScoutDriverPlus\Tests\Integration\Queries;
+namespace Elastic\ScoutDriverPlus\Tests\Integration\Queries;
 
 use Carbon\Carbon;
-use ElasticAdapter\Documents\Document;
-use ElasticAdapter\Search\Highlight;
-use ElasticAdapter\Search\SearchResponse;
-use ElasticScoutDriverPlus\Decorators\Hit;
-use ElasticScoutDriverPlus\Tests\App\Author;
-use ElasticScoutDriverPlus\Tests\App\Book;
-use ElasticScoutDriverPlus\Tests\App\Model;
-use ElasticScoutDriverPlus\Tests\Integration\TestCase;
+use Elastic\Adapter\Documents\Document;
+use Elastic\Adapter\Search\Highlight;
+use Elastic\Adapter\Search\SearchResult;
+use Elastic\ScoutDriverPlus\Decorators\Hit;
+use Elastic\ScoutDriverPlus\Tests\App\Author;
+use Elastic\ScoutDriverPlus\Tests\App\Book;
+use Elastic\ScoutDriverPlus\Tests\App\Model;
+use Elastic\ScoutDriverPlus\Tests\Integration\TestCase;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Support\Facades\Cache;
 use RuntimeException;
@@ -18,20 +18,23 @@ use const SORT_NUMERIC;
 use stdClass;
 
 /**
- * @covers \ElasticScoutDriverPlus\Builders\SearchRequestBuilder
- * @covers \ElasticScoutDriverPlus\Engine
- * @covers \ElasticScoutDriverPlus\Factories\LazyModelFactory
- * @covers \ElasticScoutDriverPlus\Support\Query
+ * @covers \Elastic\ScoutDriverPlus\Builders\SearchParametersBuilder
+ * @covers \Elastic\ScoutDriverPlus\Engine
+ * @covers \Elastic\ScoutDriverPlus\Factories\LazyModelFactory
+ * @covers \Elastic\ScoutDriverPlus\Factories\ModelFactory
+ * @covers \Elastic\ScoutDriverPlus\Support\Query
  *
- * @uses   \ElasticScoutDriverPlus\Decorators\Hit
- * @uses   \ElasticScoutDriverPlus\Decorators\SearchResult
- * @uses   \ElasticScoutDriverPlus\Factories\DocumentFactory
- * @uses   \ElasticScoutDriverPlus\Factories\ParameterFactory
- * @uses   \ElasticScoutDriverPlus\Factories\RoutingFactory
- * @uses   \ElasticScoutDriverPlus\Paginator
- * @uses   \ElasticScoutDriverPlus\QueryParameters\ParameterCollection
- * @uses   \ElasticScoutDriverPlus\Searchable
- * @uses   \ElasticScoutDriverPlus\Support\ModelScope
+ * @uses   \Elastic\ScoutDriverPlus\Builders\DatabaseQueryBuilder
+ * @uses   \Elastic\ScoutDriverPlus\Decorators\Hit
+ * @uses   \Elastic\ScoutDriverPlus\Decorators\SearchResult
+ * @uses   \Elastic\ScoutDriverPlus\Decorators\Suggestion
+ * @uses   \Elastic\ScoutDriverPlus\Exceptions\NotSearchableModelException
+ * @uses   \Elastic\ScoutDriverPlus\Factories\DocumentFactory
+ * @uses   \Elastic\ScoutDriverPlus\Factories\ParameterFactory
+ * @uses   \Elastic\ScoutDriverPlus\Factories\RoutingFactory
+ * @uses   \Elastic\ScoutDriverPlus\Paginator
+ * @uses   \Elastic\ScoutDriverPlus\QueryParameters\ParameterCollection
+ * @uses   \Elastic\ScoutDriverPlus\Searchable
  */
 final class RawQueryTest extends TestCase
 {
@@ -142,11 +145,11 @@ final class RawQueryTest extends TestCase
 
     public function test_terms_can_be_suggested(): void
     {
-        $target = collect(['world', 'word'])->map(static function (string $title) {
-            return factory(Book::class)
+        $target = collect(['world', 'word'])->map(
+            static fn (string $title) => factory(Book::class)
                 ->state('belongs_to_author')
-                ->create(compact('title'));
-        });
+                ->create(compact('title'))
+        );
 
         $found = Book::searchQuery(['match_none' => new stdClass()])
             ->suggest('title', [
@@ -219,19 +222,27 @@ final class RawQueryTest extends TestCase
 
         // additional mixin
         factory(Book::class, 10)->create([
-            'price' => static function () {
-                return random_int(500, 1000);
-            },
+            'price' => static fn () => random_int(500, 1000),
             'author_id' => $firstTarget->author_id,
         ]);
 
         // find the cheapest books by author
         $found = Book::searchQuery(['match_all' => new stdClass()])
-            ->collapseRaw(['field' => 'author_id'])
-            ->sort('price', 'asc')
+            ->collapseRaw([
+                'field' => 'author_id',
+                'inner_hits' => [
+                    'name' => 'cheapest',
+                    'size' => 5,
+                    'sort' => [['price' => 'asc']],
+                ],
+            ])
+            ->sort('price')
             ->execute();
 
         $this->assertFoundModels(collect([$firstTarget, $secondTarget]), $found);
+
+        $this->assertCount(5, $found->hits()->first()->innerHits()->get('cheapest')->map->model());
+        $this->assertCount(1, $found->hits()->last()->innerHits()->get('cheapest')->map->model());
     }
 
     public function test_models_can_be_found_using_field_collapsing(): void
@@ -242,9 +253,7 @@ final class RawQueryTest extends TestCase
 
         // additional mixin
         factory(Book::class, 10)->create([
-            'published' => static function () use ($target) {
-                return $target->published->subDays(rand(1, 10));
-            },
+            'published' => static fn () => $target->published->subDays(rand(1, 10)),
             'author_id' => $target->author_id,
         ]);
 
@@ -266,7 +275,7 @@ final class RawQueryTest extends TestCase
         $minPrice = $source->min('price');
         $maxPrice = $source->max('price');
 
-        $found = Book::searchQuery(['match_all' => new stdClass()])
+        $found = Book::searchQuery()
             ->aggregateRaw([
                 'min_price' => [
                     'min' => [
@@ -279,7 +288,6 @@ final class RawQueryTest extends TestCase
                     ],
                 ],
             ])
-            ->size(0)
             ->execute();
 
         $this->assertEquals($minPrice, $found->aggregations()->get('min_price')->raw()['value']);
@@ -292,13 +300,12 @@ final class RawQueryTest extends TestCase
             ->state('belongs_to_author')
             ->create();
 
-        $found = Book::searchQuery(['match_all' => new stdClass()])
+        $found = Book::searchQuery()
             ->aggregate('max_price', [
                 'max' => [
                     'field' => 'price',
                 ],
             ])
-            ->size(0)
             ->execute();
 
         $this->assertEquals($source->max('price'), $found->aggregations()->get('max_price')->raw()['value']);
@@ -408,8 +415,8 @@ final class RawQueryTest extends TestCase
 
         $selectedColumns = ['id', 'title', 'description'];
         $found = Book::searchQuery(['match_all' => new stdClass()])
-            ->setQueryCallback(function(EloquentBuilder $query, SearchResponse $response) use ($selectedColumns) {
-                $this->assertInstanceOf(SearchResponse::class, $response);
+            ->setEloquentQueryCallback(function (EloquentBuilder $query, $result) use ($selectedColumns) {
+                $this->assertInstanceOf(SearchResult::class, $result);
                 $query->select($selectedColumns);
             })
             ->execute();
@@ -429,12 +436,14 @@ final class RawQueryTest extends TestCase
         $authorSelectedColumns = ['id', 'name', 'last_name'];
         $found = Book::searchQuery(['match_all' => new stdClass()])
             ->join(Author::class)
-            ->setQueryCallback(function(EloquentBuilder $query, SearchResponse $response) use ($bookSelectedColumns) {
-                $this->assertInstanceOf(SearchResponse::class, $response);
+            ->setEloquentQueryCallback(function (EloquentBuilder $query, $result) use ($bookSelectedColumns) {
+                $this->assertInstanceOf(SearchResult::class, $result);
+
                 $query->select($bookSelectedColumns);
             }, Book::class)
-            ->setQueryCallback(function(EloquentBuilder $query, SearchResponse $response) use ($authorSelectedColumns) {
-                $this->assertInstanceOf(SearchResponse::class, $response);
+            ->setEloquentQueryCallback(function (EloquentBuilder $query, $result) use ($authorSelectedColumns) {
+                $this->assertInstanceOf(SearchResult::class, $result);
+
                 $query->select($authorSelectedColumns);
             }, Author::class)
             ->execute();
@@ -442,49 +451,6 @@ final class RawQueryTest extends TestCase
         $found->models()->each(function (Model $model) use ($bookSelectedColumns, $authorSelectedColumns) {
             $columns = $model instanceof Book ? $bookSelectedColumns : $authorSelectedColumns;
             $this->assertEqualsCanonicalizing(array_keys($model->getAttributes()), $columns);
-        });
-    }
-
-    public function test_model_callback_executed_in_a_single_model_class(): void
-    {
-        factory(Book::class, 5)
-            ->state('belongs_to_author')
-            ->create();
-
-        $found = Book::searchQuery(['match_all' => new stdClass()])
-            ->setModelCallback(function(Model $model, SearchResponse $response) {
-                $this->assertInstanceOf(SearchResponse::class, $response);
-                $model->append('formatted_price');
-            })
-            ->execute();
-
-        $found->models()->each(function (Model $model) {
-            $this->assertTrue($model->hasAppended('formatted_price'));
-        });
-    }
-
-    public function test_model_callbacks_executed_in_multiple_model_classes(): void
-    {
-        factory(Book::class, 5)
-            ->state('belongs_to_author')
-            ->create();
-
-        $found = Book::searchQuery(['match_all' => new stdClass()])
-            ->join(Author::class)
-            ->setModelCallback(function(Model $model, SearchResponse $response) {
-                $this->assertInstanceOf(SearchResponse::class, $response);
-                $model->append('formatted_price');
-            }, Book::class)
-            ->setModelCallback(function(Model $model, SearchResponse $response) {
-                $this->assertInstanceOf(SearchResponse::class, $response);
-                $model->append('full_name');
-            }, Author::class)
-            ->execute();
-
-        $found->models()->each(function (Model $model) {
-            $attribute = $model instanceof Book ? 'formatted_price' : 'full_name';
-
-            $this->assertTrue($model->hasAppended($attribute));
         });
     }
 
@@ -496,7 +462,7 @@ final class RawQueryTest extends TestCase
             ->sortBy('id', SORT_NUMERIC);
 
         $cacheStore = Cache::store('file');
-        $cacheStore->delete('raw_search_result');
+        $cacheStore->clear();
 
         $found = $cacheStore->rememberForever('raw_search_result', static function () {
             return Book::searchQuery(['match_all' => new stdClass()])
@@ -563,10 +529,120 @@ final class RawQueryTest extends TestCase
         $secondTarget = $firstTarget->author;
 
         $found = Book::searchQuery(['match_all' => new stdClass()])
-            ->join(Author::class)
-            ->boostIndex(Book::class, 2)
+            ->join(Author::class, 0.5)
             ->execute();
 
         $this->assertFoundModels(collect([$firstTarget, $secondTarget]), $found);
+    }
+
+    public function test_models_can_be_retrieved_from_suggestions(): void
+    {
+        $target = factory(Book::class)
+            ->state('belongs_to_author')
+            ->create(['title' => 'The Book']);
+
+        $found = Book::searchQuery()
+            ->suggest('suggestion', [
+                'prefix' => 'the',
+                'completion' => [
+                    'field' => 'suggest',
+                ],
+            ])
+            ->execute();
+
+        $suggestion = $found->suggestions()->get('suggestion')->first();
+
+        $this->assertCount(1, $suggestion->models());
+        $this->assertEquals($target->toArray(), $suggestion->models()->first()->toArray());
+    }
+
+    public function test_models_can_be_found_using_search_after(): void
+    {
+        // create documents that should be in the search result
+        $target = factory(Author::class, 2)
+            ->create()
+            ->sortBy('id', SORT_NUMERIC);
+
+        $pit = Author::openPointInTime('5m');
+
+        // create another document after opening a pit, to make sure it isn't present in the search result
+        factory(Author::class)->create();
+
+        $firstResult = Author::searchQuery()
+            ->sort('id')
+            ->pointInTime($pit)
+            ->size(1)
+            ->execute();
+
+        $this->assertFoundModel($target->first(), $firstResult);
+
+        $secondResult = Author::searchQuery()
+            ->sort('id')
+            ->pointInTime($pit)
+            ->searchAfter($firstResult->hits()->last()->sort())
+            ->size(1)
+            ->execute();
+
+        $this->assertFoundModel($target->last(), $secondResult);
+
+        $thirdResult = Author::searchQuery()
+            ->sort('id')
+            ->pointInTime($pit)
+            ->searchAfter($secondResult->hits()->last()->sort())
+            ->size(1)
+            ->execute();
+
+        $this->assertCount(0, $thirdResult);
+
+        // cleanup
+        Author::closePointInTime($pit);
+    }
+
+    public function test_models_can_be_found_with_custom_routing(): void
+    {
+        $target = factory(Book::class)->create([
+            'author_id' => factory(Author::class)->create([
+                'name' => 'John Doe',
+            ]),
+        ]);
+
+        // additional mixin
+        factory(Book::class, rand(2, 5))->create([
+            'author_id' => factory(Author::class)->create([
+                'name' => 'Jane Roe',
+            ]),
+        ]);
+
+        $found = Book::searchQuery()
+            ->routing([$target->searchableRouting()])
+            ->execute();
+
+        $this->assertFoundModel($target, $found);
+    }
+
+    public function test_query_can_be_explained(): void
+    {
+        $target = factory(Book::class)
+            ->state('belongs_to_author')
+            ->create(['title' => 'test']);
+
+        $found = Book::searchQuery([
+            'match' => [
+                'title' => $target->title,
+            ],
+        ])->explain(true)->execute();
+
+        $this->assertGreaterThan(0, $found->hits()->first()->explanation()->value());
+    }
+
+    public function test_query_can_be_terminated(): void
+    {
+        factory(Book::class, 10)->create([
+            'author_id' => factory(Author::class)->create(),
+        ]);
+
+        $found = Book::searchQuery()->terminateAfter(1)->execute();
+
+        $this->assertCount(1, $found);
     }
 }

@@ -1,25 +1,22 @@
 <?php declare(strict_types=1);
 
-namespace ElasticScoutDriverPlus\Tests\Unit\Builders;
+namespace Elastic\ScoutDriverPlus\Tests\Unit\Builders;
 
-use ElasticScoutDriverPlus\Builders\TermQueryBuilder;
-use ElasticScoutDriverPlus\Exceptions\QueryBuilderException;
+use Elastic\ScoutDriverPlus\Builders\TermQueryBuilder;
+use Elastic\ScoutDriverPlus\Exceptions\QueryBuilderValidationException;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers \ElasticScoutDriverPlus\Builders\AbstractParameterizedQueryBuilder
- * @covers \ElasticScoutDriverPlus\Builders\TermQueryBuilder
+ * @covers \Elastic\ScoutDriverPlus\Builders\AbstractParameterizedQueryBuilder
+ * @covers \Elastic\ScoutDriverPlus\Builders\TermQueryBuilder
  *
- * @uses   \ElasticScoutDriverPlus\QueryParameters\ParameterCollection
- * @uses   \ElasticScoutDriverPlus\QueryParameters\Transformers\GroupedArrayTransformer
- * @uses   \ElasticScoutDriverPlus\QueryParameters\Validators\AllOfValidator
+ * @uses   \Elastic\ScoutDriverPlus\QueryParameters\ParameterCollection
+ * @uses   \Elastic\ScoutDriverPlus\QueryParameters\Transformers\GroupedArrayTransformer
+ * @uses   \Elastic\ScoutDriverPlus\QueryParameters\Validators\AllOfValidator
  */
 final class TermQueryBuilderTest extends TestCase
 {
-    /**
-     * @var TermQueryBuilder
-     */
-    private $builder;
+    private TermQueryBuilder $builder;
 
     protected function setUp(): void
     {
@@ -30,7 +27,7 @@ final class TermQueryBuilderTest extends TestCase
 
     public function test_exception_is_thrown_when_field_is_not_specified(): void
     {
-        $this->expectException(QueryBuilderException::class);
+        $this->expectException(QueryBuilderValidationException::class);
 
         $this->builder
             ->value('100')
@@ -39,7 +36,7 @@ final class TermQueryBuilderTest extends TestCase
 
     public function test_exception_is_thrown_when_value_is_not_specified(): void
     {
-        $this->expectException(QueryBuilderException::class);
+        $this->expectException(QueryBuilderValidationException::class);
 
         $this->builder
             ->field('price')
@@ -69,7 +66,7 @@ final class TermQueryBuilderTest extends TestCase
         $expected = [
             'term' => [
                 'price' => [
-                    'value' => '100',
+                    'value' => 100,
                     'boost' => 1.0,
                 ],
             ],
@@ -77,8 +74,28 @@ final class TermQueryBuilderTest extends TestCase
 
         $actual = $this->builder
             ->field('price')
-            ->value('100')
+            ->value(100)
             ->boost(1.0)
+            ->buildQuery();
+
+        $this->assertSame($expected, $actual);
+    }
+
+    public function test_query_with_field_and_value_and_case_insensitive_can_be_built(): void
+    {
+        $expected = [
+            'term' => [
+                'price' => [
+                    'value' => 100,
+                    'case_insensitive' => true,
+                ],
+            ],
+        ];
+
+        $actual = $this->builder
+            ->field('price')
+            ->value(100)
+            ->caseInsensitive(true)
             ->buildQuery();
 
         $this->assertSame($expected, $actual);
