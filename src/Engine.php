@@ -1,37 +1,37 @@
 <?php declare(strict_types=1);
 
-namespace ElasticScoutDriverPlus;
+namespace Elastic\ScoutDriverPlus;
 
-use ElasticAdapter\Documents\DocumentManager;
-use ElasticAdapter\Indices\IndexManager;
-use ElasticAdapter\Search\SearchRequest;
-use ElasticAdapter\Search\SearchResponse;
-use ElasticScoutDriver\Engine as BaseEngine;
-use ElasticScoutDriver\Factories\DocumentFactoryInterface;
-use ElasticScoutDriver\Factories\ModelFactoryInterface;
-use ElasticScoutDriver\Factories\SearchRequestFactoryInterface;
-use ElasticScoutDriverPlus\Factories\RoutingFactoryInterface;
-use ElasticScoutDriverPlus\Support\ModelScope;
+use Elastic\Adapter\Documents\DocumentManager;
+use Elastic\Adapter\Indices\IndexManager;
+use Elastic\Adapter\Search\PointInTimeManager;
+use Elastic\Adapter\Search\SearchParameters;
+use Elastic\Adapter\Search\SearchResult;
+use Elastic\ScoutDriver\Engine as BaseEngine;
+use Elastic\ScoutDriver\Factories\DocumentFactoryInterface;
+use Elastic\ScoutDriver\Factories\ModelFactoryInterface;
+use Elastic\ScoutDriver\Factories\SearchParametersFactoryInterface;
+use Elastic\ScoutDriverPlus\Factories\RoutingFactoryInterface;
 use Illuminate\Database\Eloquent\Model;
 
-final class Engine extends BaseEngine
+class Engine extends BaseEngine
 {
-    /**
-     * @var RoutingFactoryInterface
-     */
-    private $routingFactory;
+    private RoutingFactoryInterface $routingFactory;
+    private PointInTimeManager $pointInTimeManager;
 
     public function __construct(
         DocumentManager $documentManager,
-        DocumentFactoryInterface $documentFactory,
-        SearchRequestFactoryInterface $searchRequestFactory,
-        ModelFactoryInterface $modelFactory,
         IndexManager $indexManager,
+        PointInTimeManager $pointInTimeManager,
+        DocumentFactoryInterface $documentFactory,
+        SearchParametersFactoryInterface $searchParametersFactory,
+        ModelFactoryInterface $modelFactory,
         RoutingFactoryInterface $routingFactory
     ) {
-        parent::__construct($documentManager, $documentFactory, $searchRequestFactory, $modelFactory, $indexManager);
+        parent::__construct($documentManager, $documentFactory, $searchParametersFactory, $modelFactory, $indexManager);
 
         $this->routingFactory = $routingFactory;
+        $this->pointInTimeManager = $pointInTimeManager;
     }
 
     /**
@@ -61,17 +61,31 @@ final class Engine extends BaseEngine
 
         $indexName = $models->first()->searchableAs();
         $routing = $this->routingFactory->makeFromModels($models);
-
-        $documentIds = $models->map(static function (Model $model) {
-            return (string)$model->getScoutKey();
-        })->all();
+        $documentIds = $models->map(static fn (Model $model) => (string)$model->getScoutKey())->all();
 
         $this->documentManager->delete($indexName, $documentIds, $this->refreshDocuments, $routing);
     }
 
-    public function executeSearchRequest(SearchRequest $searchRequest, ModelScope $modelScope): SearchResponse
+    public function searchWithParameters(SearchParameters $searchParameters): SearchResult
     {
-        $indexName = $modelScope->resolveIndexNames()->join(',');
-        return $this->documentManager->search($indexName, $searchRequest);
+        return $this->documentManager->search($searchParameters);
+    }
+
+    public function connection(string $connection): self
+    {
+        $self = clone $this;
+        $self->documentManager = $self->documentManager->connection($connection);
+        $self->indexManager = $self->indexManager->connection($connection);
+        return $self;
+    }
+
+    public function openPointInTime(string $indexName, ?string $keepAlive = null): string
+    {
+        return $this->pointInTimeManager->open($indexName, $keepAlive);
+    }
+
+    public function closePointInTime(string $pointInTimeId): void
+    {
+        $this->pointInTimeManager->close($pointInTimeId);
     }
 }

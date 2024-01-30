@@ -40,7 +40,7 @@ return $config
         'no_leading_namespace_whitespace' => true,
         'no_spaces_around_offset' => true,
         'no_superfluous_phpdoc_tags' => ['allow_mixed' => true],
-        'no_trailing_comma_in_singleline_array' => true,
+        'no_trailing_comma_in_singleline' => true,
         'no_unneeded_control_parentheses' => true,
         'no_unset_cast' => true,
         'no_unused_imports' => true,
@@ -81,4 +81,6 @@ return $config
         'trailing_comma_in_multiline' => true,
         'visibility_required' => true,
         'yoda_style' => false,
+        'use_arrow_functions' => true,
+        'phpdoc_to_property_type' => true,
     ]);

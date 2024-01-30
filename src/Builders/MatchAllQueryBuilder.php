@@ -1,15 +1,12 @@
 <?php declare(strict_types=1);
 
-namespace ElasticScoutDriverPlus\Builders;
+namespace Elastic\ScoutDriverPlus\Builders;
 
 use stdClass;
 
 final class MatchAllQueryBuilder implements QueryBuilderInterface
 {
-    /**
-     * @var string
-     */
-    protected $type = 'match_all';
+    protected string $type = 'match_all';
 
     public function buildQuery(): array
     {

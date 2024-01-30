@@ -1,25 +1,22 @@
 <?php declare(strict_types=1);
 
-namespace ElasticScoutDriverPlus\Tests\Unit\Builders;
+namespace Elastic\ScoutDriverPlus\Tests\Unit\Builders;
 
-use ElasticScoutDriverPlus\Builders\PrefixQueryBuilder;
-use ElasticScoutDriverPlus\Exceptions\QueryBuilderException;
+use Elastic\ScoutDriverPlus\Builders\PrefixQueryBuilder;
+use Elastic\ScoutDriverPlus\Exceptions\QueryBuilderValidationException;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers \ElasticScoutDriverPlus\Builders\AbstractParameterizedQueryBuilder
- * @covers \ElasticScoutDriverPlus\Builders\PrefixQueryBuilder
+ * @covers \Elastic\ScoutDriverPlus\Builders\AbstractParameterizedQueryBuilder
+ * @covers \Elastic\ScoutDriverPlus\Builders\PrefixQueryBuilder
  *
- * @uses   \ElasticScoutDriverPlus\QueryParameters\ParameterCollection
- * @uses   \ElasticScoutDriverPlus\QueryParameters\Transformers\GroupedArrayTransformer
- * @uses   \ElasticScoutDriverPlus\QueryParameters\Validators\AllOfValidator
+ * @uses   \Elastic\ScoutDriverPlus\QueryParameters\ParameterCollection
+ * @uses   \Elastic\ScoutDriverPlus\QueryParameters\Transformers\GroupedArrayTransformer
+ * @uses   \Elastic\ScoutDriverPlus\QueryParameters\Validators\AllOfValidator
  */
 final class PrefixQueryBuilderTest extends TestCase
 {
-    /**
-     * @var PrefixQueryBuilder
-     */
-    private $builder;
+    private PrefixQueryBuilder $builder;
 
     protected function setUp(): void
     {
@@ -30,7 +27,7 @@ final class PrefixQueryBuilderTest extends TestCase
 
     public function test_exception_is_thrown_when_field_is_not_specified(): void
     {
-        $this->expectException(QueryBuilderException::class);
+        $this->expectException(QueryBuilderValidationException::class);
 
         $this->builder
             ->value('bo')
@@ -39,7 +36,7 @@ final class PrefixQueryBuilderTest extends TestCase
 
     public function test_exception_is_thrown_when_value_is_not_specified(): void
     {
-        $this->expectException(QueryBuilderException::class);
+        $this->expectException(QueryBuilderValidationException::class);
 
         $this->builder
             ->field('title')
@@ -79,6 +76,26 @@ final class PrefixQueryBuilderTest extends TestCase
             ->field('title')
             ->value('bo')
             ->rewrite('constant_score')
+            ->buildQuery();
+
+        $this->assertSame($expected, $actual);
+    }
+
+    public function test_query_with_field_and_value_and_case_insensitive_can_be_built(): void
+    {
+        $expected = [
+            'prefix' => [
+                'title' => [
+                    'value' => 'bo',
+                    'case_insensitive' => true,
+                ],
+            ],
+        ];
+
+        $actual = $this->builder
+            ->field('title')
+            ->value('bo')
+            ->caseInsensitive(true)
             ->buildQuery();
 
         $this->assertSame($expected, $actual);

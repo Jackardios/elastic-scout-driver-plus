@@ -1,17 +1,14 @@
 <?php declare(strict_types=1);
 
-namespace ElasticScoutDriverPlus\QueryParameters;
+namespace Elastic\ScoutDriverPlus\QueryParameters;
 
-use ElasticScoutDriverPlus\Support\Arr;
+use Elastic\ScoutDriverPlus\Support\Arr;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Collection as BaseCollection;
 
 final class ParameterCollection implements Arrayable
 {
-    /**
-     * @var BaseCollection
-     */
-    private $items;
+    private BaseCollection $items;
 
     public function __construct(array $items = [])
     {
@@ -63,7 +60,7 @@ final class ParameterCollection implements Arrayable
     public function except($keys): self
     {
         $items = $this->items->except($keys)->all();
-        return new static($items);
+        return new self($items);
     }
 
     /**
@@ -72,19 +69,16 @@ final class ParameterCollection implements Arrayable
     public function only($keys): self
     {
         $items = $this->items->only($keys)->all();
-        return new static($items);
+        return new self($items);
     }
 
     public function excludeEmpty(): self
     {
-        $items = $this->items->filter(static function ($value) {
-            return
-                isset($value) &&
-                $value !== '' &&
-                $value !== [];
-        })->all();
+        $items = $this->items->filter(
+            static fn ($value) => isset($value) && $value !== []
+        )->all();
 
-        return new static($items);
+        return new self($items);
     }
 
     public function count(): int

@@ -1,21 +1,15 @@
 <?php declare(strict_types=1);
 
-namespace ElasticScoutDriverPlus\Tests\App;
+namespace Elastic\ScoutDriverPlus\Tests\App;
 
-use ElasticScoutDriverPlus\Searchable;
+use Elastic\ScoutDriverPlus\Searchable;
 use Illuminate\Database\Eloquent\Model as BaseModel;
 
 abstract class Model extends BaseModel
 {
     use Searchable;
 
-    /**
-     * @var array
-     */
     protected $guarded = [];
-    /**
-     * @var bool
-     */
     public $timestamps = false;
 
     /**

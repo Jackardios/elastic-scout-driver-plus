@@ -1,83 +1,94 @@
 <?php declare(strict_types=1);
 
-namespace ElasticScoutDriverPlus\Tests\Integration\Factories;
+namespace Elastic\ScoutDriverPlus\Tests\Integration\Factories;
 
-use ElasticAdapter\Search\SearchResponse;
-use ElasticScoutDriverPlus\Factories\LazyModelFactory;
-use ElasticScoutDriverPlus\Support\ModelScope;
-use ElasticScoutDriverPlus\Tests\App\Author;
-use ElasticScoutDriverPlus\Tests\App\Book;
-use ElasticScoutDriverPlus\Tests\Integration\TestCase;
-use Illuminate\Database\Connection;
-use Illuminate\Support\Facades\DB;
+use Elastic\Adapter\Search\SearchResult;
+use Elastic\ScoutDriverPlus\Builders\DatabaseQueryBuilder;
+use Elastic\ScoutDriverPlus\Factories\LazyModelFactory;
+use Elastic\ScoutDriverPlus\Factories\ModelFactory;
+use Elastic\ScoutDriverPlus\Tests\App\Author;
+use Elastic\ScoutDriverPlus\Tests\App\Book;
+use Elastic\ScoutDriverPlus\Tests\Integration\TestCase;
 
 /**
- * @covers \ElasticScoutDriverPlus\Factories\LazyModelFactory
+ * @covers \Elastic\ScoutDriverPlus\Factories\LazyModelFactory
  *
- * @uses   \ElasticScoutDriverPlus\Engine
- * @uses   \ElasticScoutDriverPlus\Factories\DocumentFactory
- * @uses   \ElasticScoutDriverPlus\Factories\RoutingFactory
- * @uses   \ElasticScoutDriverPlus\Searchable
- * @uses   \ElasticScoutDriverPlus\Support\ModelScope
+ * @uses   \Elastic\ScoutDriverPlus\Builders\DatabaseQueryBuilder
+ * @uses   \Elastic\ScoutDriverPlus\Engine
+ * @uses   \Elastic\ScoutDriverPlus\Factories\DocumentFactory
+ * @uses   \Elastic\ScoutDriverPlus\Factories\ModelFactory
+ * @uses   \Elastic\ScoutDriverPlus\Factories\RoutingFactory
+ * @uses   \Elastic\ScoutDriverPlus\Searchable
  */
 final class LazyModelFactoryTest extends TestCase
 {
-    public function test_null_value_is_returned_when_trying_to_make_model_from_empty_search_response(): void
+    private Author $author;
+    private Book $book;
+    private LazyModelFactory $lazyModelFactory;
+
+    protected function setUp(): void
     {
-        $model = new Book();
+        parent::setUp();
 
-        $factory = new LazyModelFactory(new SearchResponse([
+        $this->author = factory(Author::class)->create();
+        $this->book = factory(Book::class)->create(['author_id' => $this->author->getKey()]);
+
+        $searchResult = new SearchResult([
             'hits' => [
-                'total' => ['value' => 0],
-                'hits' => [],
+                'total' => [
+                    'value' => 2,
+                ],
+                'hits' => [
+                    [
+                        '_id' => (string)$this->author->getScoutKey(),
+                        '_index' => $this->author->searchableAs(),
+                    ],
+                    [
+                        '_id' => (string)$this->book->getScoutKey(),
+                        '_index' => $this->book->searchableAs(),
+                    ],
+                ],
             ],
-        ]), new ModelScope(get_class($model)));
+        ]);
 
-        $this->assertNull($factory->makeByIndexNameAndDocumentId($model->searchableAs(), '123'));
+        $modelFactory = new ModelFactory([
+            $this->author->searchableAs() => new DatabaseQueryBuilder($this->author),
+            $this->book->searchableAs() => new DatabaseQueryBuilder($this->book),
+        ]);
+
+        $this->lazyModelFactory = new LazyModelFactory($searchResult, $modelFactory);
     }
 
-    public function test_models_can_be_lazy_made_from_not_empty_search_response(): void
+    public function test_null_is_returned_when_document_is_not_in_search_result(): void
     {
-        $author = factory(Author::class)->create();
-        $book = factory(Book::class)->create(['author_id' => $author->getKey()]);
+        $this->assertNull(
+            $this->lazyModelFactory->makeFromIndexNameAndDocumentId(
+                $this->author->searchableAs(),
+                '0'
+            )
+        );
+    }
 
-        $models = collect([$author, $book]);
-
-        $modelScope = new ModelScope(Author::class);
-        $modelScope->push(Book::class);
-
-        /** @var Connection $connection */
-        $connection = DB::connection();
-        $connection->enableQueryLog();
-
-        $factory = new LazyModelFactory(new SearchResponse([
-            'hits' => [
-                'total' => ['value' => $models->count()],
-                'hits' => $models->map(static function ($model) {
-                    /** @var Author|Book $model */
-                    return [
-                        '_id' => (string)$model->getKey(),
-                        '_index' => $model->searchableAs(),
-                        '_source' => [],
-                    ];
-                })->all(),
-            ],
-        ]), $modelScope);
-
-        // assert that related to search response models are returned
-        $models->each(function ($expected) use ($factory) {
-            /** @var Author|Book $expected */
-            /** @var Author|Book $actual */
-            $actual = $factory->makeByIndexNameAndDocumentId(
-                $expected->searchableAs(),
-                (string)$expected->getScoutKey()
+    public function test_models_are_returned_when_documents_are_in_search_result(): void
+    {
+        $this->assertDatabaseQueriesCount(1, function () {
+            $this->assertEquals(
+                $this->author->toArray(),
+                $this->lazyModelFactory->makeFromIndexNameAndDocumentId(
+                    $this->author->searchableAs(),
+                    (string)$this->author->getScoutKey()
+                )->toArray()
             );
-
-            $this->assertNotNull($actual);
-            $this->assertEquals($expected->toArray(), $actual->toArray());
         });
 
-        // assert that only one query per index is made
-        $this->assertCount(2, $connection->getQueryLog());
+        $this->assertDatabaseQueriesCount(1, function () {
+            $this->assertEquals(
+                $this->book->toArray(),
+                $this->lazyModelFactory->makeFromIndexNameAndDocumentId(
+                    $this->book->searchableAs(),
+                    (string)$this->book->getScoutKey()
+                )->toArray()
+            );
+        });
     }
 }

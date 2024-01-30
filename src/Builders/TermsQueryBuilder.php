@@ -1,13 +1,13 @@
 <?php declare(strict_types=1);
 
-namespace ElasticScoutDriverPlus\Builders;
+namespace Elastic\ScoutDriverPlus\Builders;
 
-use ElasticScoutDriverPlus\QueryParameters\ParameterCollection;
-use ElasticScoutDriverPlus\QueryParameters\Shared\BoostParameter;
-use ElasticScoutDriverPlus\QueryParameters\Shared\FieldParameter;
-use ElasticScoutDriverPlus\QueryParameters\Shared\ValuesParameter;
-use ElasticScoutDriverPlus\QueryParameters\Transformers\ArrayTransformerInterface;
-use ElasticScoutDriverPlus\QueryParameters\Validators\AllOfValidator;
+use Elastic\ScoutDriverPlus\QueryParameters\ParameterCollection;
+use Elastic\ScoutDriverPlus\QueryParameters\Shared\BoostParameter;
+use Elastic\ScoutDriverPlus\QueryParameters\Shared\FieldParameter;
+use Elastic\ScoutDriverPlus\QueryParameters\Shared\ValuesParameter;
+use Elastic\ScoutDriverPlus\QueryParameters\Transformers\CallbackArrayTransformer;
+use Elastic\ScoutDriverPlus\QueryParameters\Validators\AllOfValidator;
 
 final class TermsQueryBuilder extends AbstractParameterizedQueryBuilder
 {
@@ -15,10 +15,7 @@ final class TermsQueryBuilder extends AbstractParameterizedQueryBuilder
     use ValuesParameter;
     use BoostParameter;
 
-    /**
-     * @var string
-     */
-    protected $type = 'terms';
+    protected string $type = 'terms';
 
     public function __construct()
     {
@@ -26,14 +23,11 @@ final class TermsQueryBuilder extends AbstractParameterizedQueryBuilder
 
         $this->parameterValidator = new AllOfValidator(['field', 'values']);
 
-        $this->parameterTransformer = new class implements ArrayTransformerInterface {
-            public function transform(ParameterCollection $parameters): array
-            {
-                return array_merge(
-                    [$parameters->get('field') => $parameters->get('values')],
-                    $parameters->except(['field', 'values'])->excludeEmpty()->toArray(),
-                );
-            }
-        };
+        $this->parameterTransformer = new CallbackArrayTransformer(
+            static fn (ParameterCollection $parameters) => array_merge(
+                [$parameters->get('field') => $parameters->get('values')],
+                $parameters->except(['field', 'values'])->excludeEmpty()->toArray(),
+            )
+        );
     }
 }

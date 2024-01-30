@@ -1,26 +1,22 @@
 <?php declare(strict_types=1);
 
-namespace ElasticScoutDriverPlus\Builders;
+namespace Elastic\ScoutDriverPlus\Builders;
 
-use ElasticScoutDriverPlus\QueryParameters\ParameterCollection;
-use ElasticScoutDriverPlus\QueryParameters\Shared\IgnoreUnmappedParameter;
-use ElasticScoutDriverPlus\QueryParameters\Shared\InnerHitsParameter;
-use ElasticScoutDriverPlus\QueryParameters\Shared\QueryParameter;
-use ElasticScoutDriverPlus\QueryParameters\Shared\ScoreModeParameter;
-use ElasticScoutDriverPlus\QueryParameters\Transformers\FlatArrayTransformer;
-use ElasticScoutDriverPlus\QueryParameters\Validators\AllOfValidator;
+use Elastic\ScoutDriverPlus\QueryParameters\ParameterCollection;
+use Elastic\ScoutDriverPlus\QueryParameters\Shared\IgnoreUnmappedParameter;
+use Elastic\ScoutDriverPlus\QueryParameters\Shared\QueryParameter;
+use Elastic\ScoutDriverPlus\QueryParameters\Shared\ScoreModeParameter;
+use Elastic\ScoutDriverPlus\QueryParameters\Transformers\FlatArrayTransformer;
+use Elastic\ScoutDriverPlus\QueryParameters\Validators\AllOfValidator;
+use stdClass;
 
 final class NestedQueryBuilder extends AbstractParameterizedQueryBuilder
 {
     use QueryParameter;
     use ScoreModeParameter;
     use IgnoreUnmappedParameter;
-    use InnerHitsParameter;
 
-    /**
-     * @var string
-     */
-    protected $type = 'nested';
+    protected string $type = 'nested';
 
     public function __construct()
     {
@@ -32,6 +28,12 @@ final class NestedQueryBuilder extends AbstractParameterizedQueryBuilder
     public function path(string $path): self
     {
         $this->parameters->put('path', $path);
+        return $this;
+    }
+
+    public function innerHits(array $options = []): self
+    {
+        $this->parameters->put('inner_hits', empty($options) ? new stdClass() : $options);
         return $this;
     }
 }

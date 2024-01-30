@@ -1,14 +1,15 @@
 <?php declare(strict_types=1);
 
-namespace ElasticScoutDriverPlus\Builders;
+namespace Elastic\ScoutDriverPlus\Builders;
 
-use ElasticScoutDriverPlus\QueryParameters\ParameterCollection;
-use ElasticScoutDriverPlus\QueryParameters\Shared\BoostParameter;
-use ElasticScoutDriverPlus\QueryParameters\Shared\FieldParameter;
-use ElasticScoutDriverPlus\QueryParameters\Shared\RewriteParameter;
-use ElasticScoutDriverPlus\QueryParameters\Shared\ValueParameter;
-use ElasticScoutDriverPlus\QueryParameters\Transformers\GroupedArrayTransformer;
-use ElasticScoutDriverPlus\QueryParameters\Validators\AllOfValidator;
+use Elastic\ScoutDriverPlus\QueryParameters\ParameterCollection;
+use Elastic\ScoutDriverPlus\QueryParameters\Shared\BoostParameter;
+use Elastic\ScoutDriverPlus\QueryParameters\Shared\CaseInsensitiveParameter;
+use Elastic\ScoutDriverPlus\QueryParameters\Shared\FieldParameter;
+use Elastic\ScoutDriverPlus\QueryParameters\Shared\RewriteParameter;
+use Elastic\ScoutDriverPlus\QueryParameters\Shared\ValueParameter;
+use Elastic\ScoutDriverPlus\QueryParameters\Transformers\GroupedArrayTransformer;
+use Elastic\ScoutDriverPlus\QueryParameters\Validators\AllOfValidator;
 
 final class WildcardQueryBuilder extends AbstractParameterizedQueryBuilder
 {
@@ -16,11 +17,9 @@ final class WildcardQueryBuilder extends AbstractParameterizedQueryBuilder
     use ValueParameter;
     use BoostParameter;
     use RewriteParameter;
+    use CaseInsensitiveParameter;
 
-    /**
-     * @var string
-     */
-    protected $type = 'wildcard';
+    protected string $type = 'wildcard';
 
     public function __construct()
     {
