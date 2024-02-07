@@ -34,7 +34,7 @@ final class RangeQueryBuilder extends AbstractParameterizedQueryBuilder
     }
 
     /**
-     * @param string|int $value
+     * @param string|float|int $value
      */
     public function gt($value): self
     {
@@ -43,7 +43,7 @@ final class RangeQueryBuilder extends AbstractParameterizedQueryBuilder
     }
 
     /**
-     * @param string|int $value
+     * @param string|float|int $value
      */
     public function gte($value): self
     {
@@ -52,7 +52,7 @@ final class RangeQueryBuilder extends AbstractParameterizedQueryBuilder
     }
 
     /**
-     * @param string|int $value
+     * @param string|float|int $value
      */
     public function lt($value): self
     {
@@ -61,7 +61,7 @@ final class RangeQueryBuilder extends AbstractParameterizedQueryBuilder
     }
 
     /**
-     * @param string|int $value
+     * @param string|float|int $value
      */
     public function lte($value): self
     {
